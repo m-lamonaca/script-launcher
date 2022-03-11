@@ -35,7 +35,7 @@ static void RootCommand(
         Depth = depth
     };
 
-    var files = finder.GetScriptFiles(fileExtensions);
+    var files = finder.GetScriptFiles();
 
     if (files.Length == 0)
     {
@@ -56,7 +56,7 @@ static void RootCommand(
 
         var scripts = AnsiConsole.Prompt(prompt);
 
-        scripts.ForEach(ScriptExecutor.Exec);
+        scripts.ForEach(x => ScriptExecutor.Exec(x, elevated));
     }
     else
     {
@@ -68,25 +68,64 @@ static void RootCommand(
 
         var script = AnsiConsole.Prompt(prompt);
 
-        ScriptExecutor.Exec(script);
+        ScriptExecutor.Exec(script, elevated);
     }
 };
 
 static class ScriptExecutor
 {
-    internal static void Exec(FileInfo file)
+    internal static void Exec(FileInfo file, bool elevated)
     {
-        var info = new ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            Arguments = $"-File {file.FullName}",
-            UseShellExecute = false,
-        };
+        var process = GetExecutableProcess(file, elevated);
 
-        Exec(info);
+        if (process is null) return;
+
+        // todo: handle exceptions (shell not found)
+        Process.Start(process)?.WaitForExit();
     }
 
-    internal static void Exec(ProcessStartInfo info) => Process.Start(info)?.WaitForExit();
+    private static ProcessStartInfo? GetExecutableProcess(FileInfo file, bool elevated)
+    {
+        return file.Extension switch
+        {
+            ".bat" or ".cmd" => new ProcessStartInfo
+            {
+                FileName = "cmd",
+                Arguments = $"/Q /C .\\{file.Name}",
+                Verb = elevated ? "runas /user:Administrator" : string.Empty,
+                WorkingDirectory = file.DirectoryName
+            },
+            ".ps1" => new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-ExecutionPolicy Bypass -File .\\{file.Name}",
+                Verb = elevated ? "runas /user:Administrator" : string.Empty,
+                WorkingDirectory = file.DirectoryName
+            },
+            ".sh" => new ProcessStartInfo
+            {
+                FileName = "bash",
+                Arguments = $"-c ./{file.Name}",
+                Verb = elevated ? "sudo" : string.Empty,
+                WorkingDirectory = file.DirectoryName
+            },
+            ".zsh" => new ProcessStartInfo
+            {
+                FileName = "zsh",
+                Arguments = $"-c ./{file.Name}",
+                Verb = elevated ? "sudo" : string.Empty,
+                WorkingDirectory = file.DirectoryName
+            },
+            ".fish" => new ProcessStartInfo
+            {
+                FileName = "fish",
+                Arguments = $"-c ./{file.Name}",
+                Verb = elevated ? "sudo" : string.Empty,
+                WorkingDirectory = file.DirectoryName
+            },
+            _ => null
+        };
+    }
 }
 
 readonly struct ScriptFinder
