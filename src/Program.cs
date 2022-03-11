@@ -10,7 +10,7 @@ var app = CoconaLiteApp.Create();
 app.AddCommand(RootCommand);
 app.Run();
 
-static void RootCommand(
+static async Task RootCommand(
     [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string extensions = "*",
     [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 0,
     [Option("elevated", new char[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
@@ -58,7 +58,7 @@ static void RootCommand(
 
         var scripts = AnsiConsole.Prompt(prompt);
 
-        scripts.ForEach(x => ScriptExecutor.Exec(x, elevated));
+        await ScriptExecutor.ExecAsync(scripts, elevated);
     }
     else
     {
@@ -72,7 +72,7 @@ static void RootCommand(
 
         var script = AnsiConsole.Prompt(prompt);
 
-        ScriptExecutor.Exec(script, elevated);
+        await ScriptExecutor.ExecAsync(script, elevated);
     }
 };
 
@@ -92,17 +92,21 @@ static class PromptDecorator
 
 static class ScriptExecutor
 {
-    internal static void Exec(FileInfo file, bool elevated)
+    internal static async Task ExecAsync(List<FileInfo> files, bool elevated)
     {
-        var process = GetExecutableProcess(file, elevated);
+        await Parallel.ForEachAsync(files, (x, ct) => ExecAsync(x, elevated, ct));
+    }
+
+    internal static async ValueTask ExecAsync(FileInfo file, bool elevated, CancellationToken cancellationToken = default)
+    {
+        var process = GetExecutableProcessInfo(file, elevated);
 
         if (process is null) return;
 
-        // todo: handle exceptions (shell not found)
-        Process.Start(process)?.WaitForExit();
+        await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
     }
 
-    private static ProcessStartInfo? GetExecutableProcess(FileInfo file, bool elevated)
+    private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated)
     {
         return file.Extension switch
         {
@@ -154,15 +158,12 @@ readonly struct ScriptFinder
 
     private readonly EnumerationOptions _options;
 
-    public ScriptFinder()
+    public ScriptFinder() => _options = new EnumerationOptions
     {
-        _options = new EnumerationOptions
-        {
-            IgnoreInaccessible = true,
-            RecurseSubdirectories = Depth > 0,
-            MaxRecursionDepth = Depth,
-        };
-    }
+        IgnoreInaccessible = true,
+        RecurseSubdirectories = Depth > 0,
+        MaxRecursionDepth = Depth,
+    };
 
     internal readonly IEnumerable<FileInfo> GetScriptFiles(string extension)
     {
