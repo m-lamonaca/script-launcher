@@ -47,11 +47,13 @@ static void RootCommand(
     if (multiple)
     {
         var prompt = new MultiSelectionPrompt<FileInfo>()
-        .Title("Select scripts")
+        .Title("Select a script the scripts to execute:")
         .NotRequired()
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
         .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
+        .UseConverter(PromptDecorator.GetStyledOption)
+        .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
         var scripts = AnsiConsole.Prompt(prompt);
@@ -61,9 +63,11 @@ static void RootCommand(
     else
     {
         var prompt = new SelectionPrompt<FileInfo>()
-        .Title("Select a script")
+        .Title("Select a script to execute:")
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+        .UseConverter(PromptDecorator.GetStyledOption)
+        .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
         var script = AnsiConsole.Prompt(prompt);
@@ -71,6 +75,20 @@ static void RootCommand(
         ScriptExecutor.Exec(script, elevated);
     }
 };
+
+static class PromptDecorator
+{
+    internal static string GetStyledOption(FileInfo info)
+    {
+        var directory = $"[blue]{info.DirectoryName ?? "."}{Path.DirectorySeparatorChar}[/]";
+        var filename = $"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]";
+        var extension = $"[greenyellow]{Path.GetExtension(info.Name)}[/]";
+
+        return $"{directory}{filename}{extension}";
+    }
+
+    internal static Style SelectionHighlight => new Style(decoration: Decoration.Bold | Decoration.Underline);
+}
 
 static class ScriptExecutor
 {
@@ -146,19 +164,19 @@ readonly struct ScriptFinder
         };
     }
 
-    internal readonly FileInfo[] GetScriptFiles(string extension)
+    internal readonly IEnumerable<FileInfo> GetScriptFiles(string extension)
     {
         try
         {
             var filenames = Directory.GetFiles(RootFolder, $"*.{extension}", _options);
-            return filenames.Select(x => new FileInfo(x)).ToArray();
+            return filenames.Select(x => new FileInfo(x));
         }
         catch (UnauthorizedAccessException)
         {
-            return Array.Empty<FileInfo>();
+            return Enumerable.Empty<FileInfo>();
         }
     }
 
-    internal readonly FileInfo[] GetScriptFiles() => 
+    internal readonly FileInfo[] GetScriptFiles() =>
         Extensions.Select(GetScriptFiles).SelectMany(x => x).ToArray();
 }
