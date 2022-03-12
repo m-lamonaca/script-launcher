@@ -5,6 +5,7 @@ using Spectre.Console;
 
 const int ScriptListSize = 15;
 const int ErrorExitCode = 1;
+string[] DefaultExtensions = new[] { "ps1", "*sh", "bat", "cmd" };
 
 var app = CoconaLiteApp.Create();
 
@@ -12,7 +13,7 @@ app.AddCommand(RootCommand);
 app.Run();
 
 static async Task RootCommand(
-    [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string extensions = "*",
+    [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
     [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 0,
     [Option("elevated", new char[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
     [Option("multiple", new char[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
@@ -25,22 +26,12 @@ static async Task RootCommand(
         return;
     }
 
-    var fileExtensions = extensions.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-        .ToHashSet()
-        .ToArray();
-
-    var finder = new ScriptFinder
-    {
-        Extensions = fileExtensions,
-        RootFolder = directory,
-        Depth = depth
-    };
-
+    var finder = new ScriptFinder(extensions, directory, depth);
     var files = finder.GetScriptFiles();
 
     if (files.Length == 0)
     {
-        AnsiConsole.Markup($"[red]No scripts script files found in '{directory}' with extensions '{string.Join("|", fileExtensions)}'[/]");
+        AnsiConsole.Markup($"[red]No scripts script files found in '{finder.RootDirectory}' with extensions '{string.Join(", ", finder.Extensions)}'[/]");
         Environment.ExitCode = ErrorExitCode;
         return;
     }
@@ -88,7 +79,7 @@ static class PromptDecorator
         return $"{directory}{filename}{extension}";
     }
 
-    internal static Style SelectionHighlight => new Style(decoration: Decoration.Bold | Decoration.Underline);
+    internal static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
 }
 
 static class ScriptExecutor
@@ -160,24 +151,34 @@ static class ScriptExecutor
 
 readonly struct ScriptFinder
 {
-    public string RootFolder { get; init; } = ".";
-    public string[] Extensions { get; init; } = new[] { "ps1", "*sh", "bat", "cmd" };
-    public int Depth { get; init; } = 0;
-
+    public string[] Extensions { get; }
+    public string RootDirectory { get; }
+    public int Depth { get; }
     private readonly EnumerationOptions _options;
 
-    public ScriptFinder() => _options = new EnumerationOptions
+    public ScriptFinder(string? extensions, string directory, int depth)
     {
-        IgnoreInaccessible = true,
-        RecurseSubdirectories = Depth > 0,
-        MaxRecursionDepth = Depth,
-    };
+        Extensions = extensions?.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+        .ToHashSet()
+        .Select(x => $".{x.TrimStart('.')}")
+        .ToArray() ?? new[] { ".ps1", ".*sh", ".bat", ".cmd" };
+
+        Depth = depth;
+        RootDirectory = directory;
+
+        _options = new EnumerationOptions
+        {
+            IgnoreInaccessible = true,
+            RecurseSubdirectories = Depth > 0,
+            MaxRecursionDepth = Depth,
+        };
+    }
 
     private IEnumerable<FileInfo> GetScriptFiles(string extension)
     {
         try
         {
-            var filenames = Directory.GetFiles(RootFolder, $"*.{extension}", _options);
+            var filenames = Directory.GetFiles(RootDirectory, $"*{extension}", _options);
             return filenames.Select(x => new FileInfo(x));
         }
         catch (UnauthorizedAccessException)
