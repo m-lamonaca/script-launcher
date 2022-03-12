@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using Cocona;
 using Spectre.Console;
 
@@ -14,7 +15,7 @@ static async Task RootCommand(
     [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string extensions = "*",
     [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 0,
     [Option("elevated", new char[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
-    [Option("multiple", new char[] { 'm' }, Description = "Execute multiple scripts")] bool multiple = false,
+    [Option("multiple", new char[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
     [Argument(Name = "Directory", Description = "Directory from which search the scripts")] string directory = ".")
 {
     if (!Directory.Exists(directory))
@@ -74,7 +75,7 @@ static async Task RootCommand(
 
         await ScriptExecutor.ExecAsync(script, elevated);
     }
-};
+}
 
 static class PromptDecorator
 {
@@ -103,7 +104,14 @@ static class ScriptExecutor
 
         if (process is null) return;
 
-        await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
+        try
+        {
+            await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
+        }
+        catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is PlatformNotSupportedException)
+        {
+            AnsiConsole.Markup($"[red]{ex.Message}[/]");
+        }
     }
 
     private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated)
@@ -165,7 +173,7 @@ readonly struct ScriptFinder
         MaxRecursionDepth = Depth,
     };
 
-    internal readonly IEnumerable<FileInfo> GetScriptFiles(string extension)
+    private IEnumerable<FileInfo> GetScriptFiles(string extension)
     {
         try
         {
@@ -178,6 +186,6 @@ readonly struct ScriptFinder
         }
     }
 
-    internal readonly FileInfo[] GetScriptFiles() =>
+    internal FileInfo[] GetScriptFiles() =>
         Extensions.Select(GetScriptFiles).SelectMany(x => x).ToArray();
 }
