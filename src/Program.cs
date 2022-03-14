@@ -15,9 +15,10 @@ app.Run();
 
 static async Task RootCommand(
     [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
-    [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 0,
+    [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 1,
     [Option("elevated", new char[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
     [Option("multiple", new char[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
+    [Option("grouped", new char[] { 'g' }, Description = "Group selection bay containing folder")] bool grouped = false,
     [Argument(Name = "Directory", Description = "Directory from which search the scripts")] string directory = ".")
 {
     if (!Directory.Exists(directory))
@@ -27,8 +28,27 @@ static async Task RootCommand(
         return;
     }
 
+    var files = Array.Empty<FileInfo>();
     var finder = new ScriptFinder(extensions, directory, depth);
-    var files = finder.GetScriptFiles();
+
+    if (grouped)
+    {
+        var dict = finder.GetScriptsByDirectory();
+        var prompt = new SelectionPrompt<DirectoryInfo>()
+            .Title("Select a directory:")
+            .PageSize(ScriptListSize)
+            .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+            .UseConverter(x => $"[blue]{x}[/]")
+            .HighlightStyle(PromptDecorator.SelectionHighlight)
+            .AddChoices(dict.Keys);
+
+        var directoryInfo = AnsiConsole.Prompt(prompt);
+        files = dict[directoryInfo];
+    }
+    else
+    {
+        files = finder.GetScripts();
+    }
 
     if (files.Length == 0)
     {
@@ -45,7 +65,7 @@ static async Task RootCommand(
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
         .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
-        .UseConverter(x => PromptDecorator.GetStyledOption(x, directory))
+        .UseConverter(PromptDecorator.FileStyle)
         .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
@@ -59,7 +79,7 @@ static async Task RootCommand(
         .Title("Select a script to execute:")
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(x => PromptDecorator.GetStyledOption(x, directory))
+        .UseConverter(PromptDecorator.FileStyle)
         .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
@@ -71,25 +91,15 @@ static async Task RootCommand(
 
 static class PromptDecorator
 {
-    internal static string GetStyledOption(FileInfo info, string root)
+    internal static string FileStyle(FileInfo info)
     {
-        var builder = new StringBuilder();
-
-        var directory = Path.GetRelativePath(root, info.DirectoryName ?? ".").TrimStart('.');
         var filename = Path.GetFileNameWithoutExtension(info.Name);
         var extension = Path.GetExtension(info.Name);
 
-        builder.Append($"[blue].{Path.DirectorySeparatorChar}[/]");
-
-        if(!string.IsNullOrWhiteSpace(directory))
-        {
-            builder.Append($"[blue]{directory}{Path.DirectorySeparatorChar}[/]");
-        }
-
-        builder.Append($"[orangered1]{filename}[/][greenyellow]{extension}[/]");
-
-        return builder.ToString();
+        return $"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/][orangered1]{filename}[/][greenyellow]{extension}[/]";
     }
+
+    internal static string DirectoryStyle(DirectoryInfo info) => $"[blue]{info}[/]";
 
     internal static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
 }
@@ -186,7 +196,7 @@ readonly struct ScriptFinder
         };
     }
 
-    private IEnumerable<FileInfo> GetScriptFiles(string extension)
+    private IEnumerable<FileInfo> GetScriptFilesWithExtension(string extension)
     {
         try
         {
@@ -199,6 +209,14 @@ readonly struct ScriptFinder
         }
     }
 
-    internal FileInfo[] GetScriptFiles() =>
-        Extensions.Select(GetScriptFiles).SelectMany(x => x).ToArray();
+    internal FileInfo[] GetScripts() =>
+        Extensions.Select(GetScriptFilesWithExtension).SelectMany(x => x).ToArray();
+
+    internal IDictionary<DirectoryInfo, FileInfo[]> GetScriptsByDirectory() =>
+        Extensions
+        .Select(GetScriptFilesWithExtension)
+        .SelectMany(x => x)
+        .GroupBy(x => x.DirectoryName!)
+        .OrderBy(x => x.Key)
+        .ToDictionary(x => new DirectoryInfo(x.Key), x => x.ToArray());
 }
