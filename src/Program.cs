@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Cocona;
 using Spectre.Console;
 
@@ -44,7 +45,7 @@ static async Task RootCommand(
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
         .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
-        .UseConverter(PromptDecorator.GetStyledOption)
+        .UseConverter(x => PromptDecorator.GetStyledOption(x, directory))
         .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
@@ -58,7 +59,7 @@ static async Task RootCommand(
         .Title("Select a script to execute:")
         .PageSize(ScriptListSize)
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(PromptDecorator.GetStyledOption)
+        .UseConverter(x => PromptDecorator.GetStyledOption(x, directory))
         .HighlightStyle(PromptDecorator.SelectionHighlight)
         .AddChoices(files);
 
@@ -70,13 +71,24 @@ static async Task RootCommand(
 
 static class PromptDecorator
 {
-    internal static string GetStyledOption(FileInfo info)
+    internal static string GetStyledOption(FileInfo info, string root)
     {
-        var directory = $"[blue]{info.DirectoryName ?? "."}{Path.DirectorySeparatorChar}[/]";
-        var filename = $"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]";
-        var extension = $"[greenyellow]{Path.GetExtension(info.Name)}[/]";
+        var builder = new StringBuilder();
 
-        return $"{directory}{filename}{extension}";
+        var directory = Path.GetRelativePath(root, info.DirectoryName ?? ".").TrimStart('.');
+        var filename = Path.GetFileNameWithoutExtension(info.Name);
+        var extension = Path.GetExtension(info.Name);
+
+        builder.Append($"[blue].{Path.DirectorySeparatorChar}[/]");
+
+        if(!string.IsNullOrWhiteSpace(directory))
+        {
+            builder.Append($"[blue]{directory}{Path.DirectorySeparatorChar}[/]");
+        }
+
+        builder.Append($"[orangered1]{filename}[/][greenyellow]{extension}[/]");
+
+        return builder.ToString();
     }
 
     internal static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
@@ -99,7 +111,7 @@ static class ScriptExecutor
         {
             await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
         }
-        catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is PlatformNotSupportedException)
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
         {
             AnsiConsole.Markup($"[red]{ex.Message}[/]");
         }
