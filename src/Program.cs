@@ -3,31 +3,27 @@ using System.Diagnostics;
 using Cocona;
 using Spectre.Console;
 
-const int ScriptListSize = 15;
-const int ErrorExitCode = 1;
-string[] DefaultExtensions = new[] { "ps1", "*sh", "bat", "cmd" };
-
 var app = CoconaLiteApp.Create();
 
 app.AddCommand(RootCommand);
 app.Run();
 
 static async Task RootCommand(
-    [Option("extensions", new char[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
-    [Option("depth", new char[] { 'd' }, Description = "Folder depth of the search")] int depth = 1,
-    [Option("elevated", new char[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
-    [Option("multiple", new char[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
-    [Option("grouped", new char[] { 'g' }, Description = "Group selection bay containing folder")] bool grouped = false,
+    [Option("extensions", new[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
+    [Option("depth", new[] { 'd' }, Description = "Folder depth of the search")] int depth = 1,
+    [Option("elevated", new[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
+    [Option("multiple", new[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
+    [Option("grouped", new[] { 'g' }, Description = "Group selection bay containing folder")] bool grouped = false,
     [Argument(Name = "Directory", Description = "Directory from which search the scripts")] string directory = ".")
 {
     if (!Directory.Exists(directory))
     {
         AnsiConsole.Markup($"[red]The directory '{directory}' does not exist.[/]");
-        Environment.ExitCode = ErrorExitCode;
+        Environment.ExitCode = 1;
         return;
     }
 
-    var files = Array.Empty<FileInfo>();
+    FileInfo[] files;
     var finder = new ScriptFinder(extensions, directory, depth);
 
     if (grouped)
@@ -37,18 +33,11 @@ static async Task RootCommand(
         if (dict.Count == 0)
         {
             AnsiConsole.Markup($"[red]No scripts script files found in '{finder.RootDirectory}' with extensions '{string.Join(", ", finder.Extensions)}'[/]");
-            Environment.ExitCode = ErrorExitCode;
+            Environment.ExitCode = 1;
             return;
         }
 
-        var prompt = new SelectionPrompt<DirectoryInfo>()
-            .Title("Select a directory:")
-            .PageSize(ScriptListSize)
-            .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-            .UseConverter(x => $"[blue]{x}[/]")
-            .HighlightStyle(PromptDecorator.SelectionHighlight)
-            .AddChoices(dict.Keys);
-
+        var prompt = PromptConstructor.GetSelectionPrompt(dict.Keys.ToArray());
         var directoryInfo = AnsiConsole.Prompt(prompt);
         files = dict[directoryInfo];
     }
@@ -60,35 +49,20 @@ static async Task RootCommand(
     if (files.Length == 0)
     {
         AnsiConsole.Markup($"[red]No scripts script files found in '{finder.RootDirectory}' with extensions '{string.Join(", ", finder.Extensions)}'[/]");
-        Environment.ExitCode = ErrorExitCode;
+        Environment.ExitCode = 1;
         return;
     }
 
     if (multiple)
     {
-        var prompt = new MultiSelectionPrompt<FileInfo>()
-        .Title("Select a script the scripts to execute:")
-        .NotRequired()
-        .PageSize(ScriptListSize)
-        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
-        .UseConverter(PromptDecorator.FileStyle)
-        .HighlightStyle(PromptDecorator.SelectionHighlight)
-        .AddChoices(files);
-
+        var prompt = PromptConstructor.GetMultiSelectionPrompt(files);
         var scripts = AnsiConsole.Prompt(prompt);
 
         await ScriptExecutor.ExecAsync(scripts, elevated);
     }
     else
     {
-        var prompt = new SelectionPrompt<FileInfo>()
-        .Title("Select a script to execute:")
-        .PageSize(ScriptListSize)
-        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(PromptDecorator.FileStyle)
-        .HighlightStyle(PromptDecorator.SelectionHighlight)
-        .AddChoices(files);
+        var prompt = PromptConstructor.GetSelectionPrompt(files);
 
         var script = AnsiConsole.Prompt(prompt);
 
@@ -96,29 +70,69 @@ static async Task RootCommand(
     }
 }
 
-static class PromptDecorator
+static class PromptConstructor
 {
-    internal static string FileStyle(FileInfo info)
-    {
-        var filename = Path.GetFileNameWithoutExtension(info.Name);
-        var extension = Path.GetExtension(info.Name);
+    const int ScriptListSize = 15;
 
-        return $"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/][orangered1]{filename}[/][greenyellow]{extension}[/]";
+    private static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
+
+    private static string FileStyle(FileInfo info) =>
+        $"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/]"
+        + $"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]"
+        + $"[greenyellow]{info.Extension}[/]";
+
+    private static string DirectoryStyle(DirectoryInfo info) => $"[blue]{info}[/]";
+
+    public static SelectionPrompt<FileInfo> GetSelectionPrompt(FileInfo[] files)
+    {
+        var prompt = new SelectionPrompt<FileInfo>()
+        .Title("Select a script to execute:")
+        .PageSize(ScriptListSize)
+        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+        .UseConverter(FileStyle)
+        .HighlightStyle(SelectionHighlight)
+        .AddChoices(files);
+
+        return prompt;
     }
 
-    internal static string DirectoryStyle(DirectoryInfo info) => $"[blue]{info}[/]";
+    public static MultiSelectionPrompt<FileInfo> GetMultiSelectionPrompt(FileInfo[] files)
+    {
+        var prompt = new MultiSelectionPrompt<FileInfo>()
+        .Title("Select a script the scripts to execute:")
+        .NotRequired()
+        .PageSize(ScriptListSize)
+        .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
+        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+        .UseConverter(FileStyle)
+        .HighlightStyle(SelectionHighlight)
+        .AddChoices(files);
 
-    internal static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
+        return prompt;
+    }
+
+    public static SelectionPrompt<DirectoryInfo> GetSelectionPrompt(DirectoryInfo[] directories)
+    {
+        var prompt = new SelectionPrompt<DirectoryInfo>()
+        .Title("Select a directory:")
+        .PageSize(ScriptListSize)
+        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+        .UseConverter(DirectoryStyle)
+        .HighlightStyle(SelectionHighlight)
+        .AddChoices(directories);
+
+        return prompt;
+    }
 }
 
 static class ScriptExecutor
 {
-    internal static async Task ExecAsync(List<FileInfo> files, bool elevated)
+    public static async Task ExecAsync(List<FileInfo> files, bool elevated)
     {
         await Parallel.ForEachAsync(files, (x, ct) => ExecAsync(x, elevated, ct));
     }
 
-    internal static async ValueTask ExecAsync(FileInfo file, bool elevated, CancellationToken cancellationToken = default)
+    public static async ValueTask ExecAsync(FileInfo file, bool elevated, CancellationToken cancellationToken = default)
     {
         var process = GetExecutableProcessInfo(file, elevated);
 
@@ -180,6 +194,7 @@ static class ScriptExecutor
 
 readonly struct ScriptFinder
 {
+    static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd" };
     public string[] Extensions { get; }
     public string RootDirectory { get; }
     public int Depth { get; }
@@ -190,7 +205,7 @@ readonly struct ScriptFinder
         Extensions = extensions?.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
         .ToHashSet()
         .Select(x => $".{x.TrimStart('.')}")
-        .ToArray() ?? new[] { ".ps1", ".*sh", ".bat", ".cmd" };
+        .ToArray() ?? DefaultExtensions;
 
         Depth = depth;
         RootDirectory = directory;
@@ -216,10 +231,10 @@ readonly struct ScriptFinder
         }
     }
 
-    internal FileInfo[] GetScripts() =>
+    public FileInfo[] GetScripts() =>
         Extensions.Select(GetScriptFilesWithExtension).SelectMany(x => x).ToArray();
 
-    internal IDictionary<DirectoryInfo, FileInfo[]> GetScriptsByDirectory() =>
+    public IDictionary<DirectoryInfo, FileInfo[]> GetScriptsByDirectory() =>
         Extensions
         .Select(GetScriptFilesWithExtension)
         .SelectMany(x => x)
