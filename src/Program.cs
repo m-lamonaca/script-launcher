@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
 using Cocona;
 using Spectre.Console;
 
@@ -34,6 +33,14 @@ static async Task RootCommand(
     if (grouped)
     {
         var dict = finder.GetScriptsByDirectory();
+
+        if (dict.Count == 0)
+        {
+            AnsiConsole.Markup($"[red]No scripts script files found in '{finder.RootDirectory}' with extensions '{string.Join(", ", finder.Extensions)}'[/]");
+            Environment.ExitCode = ErrorExitCode;
+            return;
+        }
+
         var prompt = new SelectionPrompt<DirectoryInfo>()
             .Title("Select a directory:")
             .PageSize(ScriptListSize)
