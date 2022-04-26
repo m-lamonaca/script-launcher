@@ -1,1 +1,0 @@
-﻿dotnet publish -o out -c Release --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true -f net6.0 -r win-x64 .\src\
