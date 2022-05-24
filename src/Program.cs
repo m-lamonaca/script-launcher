@@ -9,11 +9,11 @@ app.AddCommand(RootCommand);
 app.Run();
 
 static async Task RootCommand(
-    [Option("extensions", new[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
-    [Option("depth", new[] { 'd' }, Description = "Folder depth of the search")] int depth = 1,
-    [Option("elevated", new[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
-    [Option("grouped", new[] { 'g' }, Description = "Group selection bay containing folder")] bool grouped = false,
-    [Argument(Name = "Directory", Description = "Directory from which search the scripts")] string directory = ".")
+    [Option("extensions", new[] { 'x' }, Description = "Comma separated list of script extensions")] string? extensions,
+    [Option("depth", new[] { 'd' }, Description = "Search depth")] int depth = 1,
+    [Option("elevated", new[] { 'e' }, Description = "Run with elevated privileges")] bool elevated = false,
+    [Option("group", new[] { 'g' }, Description = "Group scripts by folder")] bool group = false,
+    [Argument(Name = "Directory", Description = "Starting directory")] string directory = ".")
 {
     if (!Directory.Exists(directory))
     {
@@ -25,7 +25,7 @@ static async Task RootCommand(
     FileInfo[] files;
     var finder = new ScriptFinder(extensions, directory, depth);
 
-    if (grouped)
+    if (group)
     {
         var dict = finder.GetScriptsByDirectory();
 
