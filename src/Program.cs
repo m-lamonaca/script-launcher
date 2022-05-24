@@ -12,7 +12,6 @@ static async Task RootCommand(
     [Option("extensions", new[] { 'e' }, Description = "Comma separated list of script extensions to search")] string? extensions,
     [Option("depth", new[] { 'd' }, Description = "Folder depth of the search")] int depth = 1,
     [Option("elevated", new[] { 'E' }, Description = "Run the script with elevated privileges")] bool elevated = false,
-    [Option("multiple", new[] { 'm' }, Description = "Execute multiple scripts in parallel")] bool multiple = false,
     [Option("grouped", new[] { 'g' }, Description = "Group selection bay containing folder")] bool grouped = false,
     [Argument(Name = "Directory", Description = "Directory from which search the scripts")] string directory = ".")
 {
@@ -37,8 +36,8 @@ static async Task RootCommand(
             return;
         }
 
-        var prompt = PromptConstructor.GetSelectionPrompt(dict.Keys.ToArray());
-        var directoryInfo = AnsiConsole.Prompt(prompt);
+        var dirPrompt = PromptConstructor.GetSelectionPrompt(dict.Keys.ToArray());
+        var directoryInfo = AnsiConsole.Prompt(dirPrompt);
         files = dict[directoryInfo];
     }
     else
@@ -53,21 +52,12 @@ static async Task RootCommand(
         return;
     }
 
-    if (multiple)
-    {
-        var prompt = PromptConstructor.GetMultiSelectionPrompt(files);
-        var scripts = AnsiConsole.Prompt(prompt);
+    
+    var prompt = PromptConstructor.GetMultiSelectionPrompt(files);
+    var scripts = AnsiConsole.Prompt(prompt);
 
-        await ScriptExecutor.ExecAsync(scripts, elevated);
-    }
-    else
-    {
-        var prompt = PromptConstructor.GetSelectionPrompt(files);
-
-        var script = AnsiConsole.Prompt(prompt);
-
-        await ScriptExecutor.ExecAsync(script, elevated);
-    }
+    await ScriptExecutor.ExecAsync(scripts, elevated);
+    
 }
 
 static class PromptConstructor
@@ -82,19 +72,6 @@ static class PromptConstructor
         + $"[greenyellow]{info.Extension}[/]";
 
     private static string DirectoryStyle(DirectoryInfo info) => $"[blue]{info}[/]";
-
-    public static SelectionPrompt<FileInfo> GetSelectionPrompt(FileInfo[] files)
-    {
-        var prompt = new SelectionPrompt<FileInfo>()
-        .Title("Select a script to execute:")
-        .PageSize(ScriptListSize)
-        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(FileStyle)
-        .HighlightStyle(SelectionHighlight)
-        .AddChoices(files);
-
-        return prompt;
-    }
 
     public static MultiSelectionPrompt<FileInfo> GetMultiSelectionPrompt(FileInfo[] files)
     {
