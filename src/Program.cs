@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Text;
 using Cocona;
 using Spectre.Console;
 
@@ -13,6 +14,7 @@ static async Task RootCommand(
     [Option("depth", new[] { 'd' }, Description = "Search depth")] int depth = 1,
     [Option("elevated", new[] { 'e' }, Description = "Run with elevated privileges")] bool elevated = false,
     [Option("group", new[] { 'g' }, Description = "Group scripts by folder")] bool group = false,
+    [Option("brief", new[] { 'b' }, Description = "Show brief information")] bool brief = false,
     [Argument(Name = "Directory", Description = "Starting directory")] string directory = ".")
 {
     if (!Directory.Exists(directory))
@@ -36,7 +38,7 @@ static async Task RootCommand(
             return;
         }
 
-        var dirPrompt = PromptConstructor.GetSelectionPrompt(dict.Keys.ToArray());
+        var dirPrompt = PromptConstructor.GetDirectoryPrompt(dict.Keys.ToArray());
         var directoryInfo = AnsiConsole.Prompt(dirPrompt);
         files = dict[directoryInfo];
     }
@@ -52,12 +54,12 @@ static async Task RootCommand(
         return;
     }
 
-    
-    var prompt = PromptConstructor.GetMultiSelectionPrompt(files);
+
+    var prompt = PromptConstructor.GetScriptPrompt(files, brief);
     var scripts = AnsiConsole.Prompt(prompt);
 
     await ScriptExecutor.ExecAsync(scripts, elevated);
-    
+
 }
 
 static class PromptConstructor
@@ -66,14 +68,25 @@ static class PromptConstructor
 
     private static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
 
-    private static string FileStyle(FileInfo info) =>
-        $"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/]"
-        + $"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]"
-        + $"[greenyellow]{info.Extension}[/]";
+    private static string FileStyle(FileInfo info, bool brief)
+    {
+        var builder = new StringBuilder();
+
+        if (!brief)
+        {
+            builder.Append($"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/]");
+        }
+
+        builder
+            .Append($"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]")
+            .Append($"[greenyellow]{info.Extension}[/]");
+
+        return builder.ToString();
+    }
 
     private static string DirectoryStyle(DirectoryInfo info) => $"[blue]{info}[/]";
 
-    public static MultiSelectionPrompt<FileInfo> GetMultiSelectionPrompt(FileInfo[] files)
+    public static MultiSelectionPrompt<FileInfo> GetScriptPrompt(FileInfo[] files, bool brief)
     {
         var prompt = new MultiSelectionPrompt<FileInfo>()
         .Title("Select a script the scripts to execute:")
@@ -81,14 +94,14 @@ static class PromptConstructor
         .PageSize(ScriptListSize)
         .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
         .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(FileStyle)
+        .UseConverter(x => FileStyle(x, brief))
         .HighlightStyle(SelectionHighlight)
         .AddChoices(files);
 
         return prompt;
     }
 
-    public static SelectionPrompt<DirectoryInfo> GetSelectionPrompt(DirectoryInfo[] directories)
+    public static SelectionPrompt<DirectoryInfo> GetDirectoryPrompt(DirectoryInfo[] directories)
     {
         var prompt = new SelectionPrompt<DirectoryInfo>()
         .Title("Select a directory:")
