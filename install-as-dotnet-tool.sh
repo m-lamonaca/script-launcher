@@ -1,10 +1,10 @@
-﻿#! /usr/bin/env bash
+#!/usr/bin/env bash
 
 dotnet pack ./src -o ./nupkg
 
 EXISTS=$(command -v script-launcher)
 
-if $EXISTS; then 
+if [ "$EXISTS" ]; then 
     ACTION="update"
 else 
     ACTION="install" 
