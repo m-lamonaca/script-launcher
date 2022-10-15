@@ -32,19 +32,19 @@ _**NOTE**_: The option `-p:PublishTrimmed=true` may produce some *warnings*. If 
 ## Usage
 
 ```sh
-Usage: script-launcher [--extensions <String>] [--depth <Int32>] [--elevated] [--group] [--brief] [--help] [--version] directory
+USAGE:
+    script-launcher <path> [OPTIONS]
 
-Arguments:
-  0: directory    Starting directory (Default: .)
+ARGUMENTS:
+    <path>    Starting directory (Default: .)
 
-Options:
-  -x, --extensions <String>    Comma separated list of script extensions
-  -d, --depth <Int32>          Search depth (Default: 1)
-  -e, --elevated               Run with elevated privileges
-  -g, --group                  Group scripts by folder
-  -b, --brief                  Show brief information
-  -h, --help                   Show help message
-  --version                    Show version
+OPTIONS:
+    -h, --help          Prints help information
+    -x, --extensions    Comma separated list of script extensions
+    -d, --depth         Search depth
+    -e, --elevated      Run with elevated privileges
+    -g, --group         Group scripts by folder
+    -b, --brief         Show brief information
 ```
 
 [CLI]: https://docs.microsoft.com/en-us/dotnet/core/tools/ ".NET CLI Docs"
