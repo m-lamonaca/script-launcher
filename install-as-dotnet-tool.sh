@@ -2,7 +2,7 @@
 
 dotnet pack ./src -o ./nupkg
 
-EXISTS=$(command -v script-launcher)
+EXISTS=$(command -v scrl)
 
 if [ "$EXISTS" ]; then 
     ACTION="update"

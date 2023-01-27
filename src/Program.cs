@@ -4,7 +4,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 
 var app = new CommandApp<RootCommand>();
-app.Configure(x => x.SetApplicationName("script-launcher"));
+app.Configure(x => x.SetApplicationName("scrl"));
 return app.Run(args);
 
 sealed class RootCommand : AsyncCommand<RootCommandSettings>
