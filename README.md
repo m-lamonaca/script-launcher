@@ -33,7 +33,7 @@ _**NOTE**_: The option `-p:PublishTrimmed=true` may produce some *warnings*. If 
 
 ```sh
 USAGE:
-    script-launcher <path> [OPTIONS]
+    scrl <path> [OPTIONS]
 
 ARGUMENTS:
     <path>    Starting directory (Default: .)

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 
 function Test-CommandExists([Parameter(Mandatory)] [string] $command)
 {
@@ -12,7 +12,7 @@ function Test-CommandExists([Parameter(Mandatory)] [string] $command)
 
 dotnet pack ./src -o ./nupkg
 
-$exists = $(Test-CommandExists script-launcher)
+$exists = $(Test-CommandExists scrl)
 $action = $exists ? 'update' : 'install'
 
 dotnet tool $action -g ScriptLauncher --add-source ./nupkg --ignore-failed-sources
