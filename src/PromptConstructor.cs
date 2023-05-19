@@ -28,7 +28,7 @@ static class PromptConstructor
     public static MultiSelectionPrompt<FileInfo> GetScriptPrompt(FileInfo[] files, bool brief)
     {
         var prompt = new MultiSelectionPrompt<FileInfo>()
-        .Title("Select a script the scripts to execute:")
+        .Title("Select the scripts to execute:")
         .NotRequired()
         .PageSize(ScriptListSize)
         .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
