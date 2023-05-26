@@ -1,11 +1,14 @@
 using System.Text;
 using Spectre.Console;
 
-static class PromptConstructor
+namespace ScriptLauncher;
+
+internal static class PromptConstructor
 {
     const int ScriptListSize = 15;
 
-    private static Style SelectionHighlight => new(decoration: Decoration.Bold | Decoration.Underline);
+    private static Style SelectionHighlight =>
+        new(decoration: Decoration.Bold | Decoration.Underline);
 
     private static string FileStyle(FileInfo info, bool brief)
     {
@@ -28,14 +31,16 @@ static class PromptConstructor
     public static MultiSelectionPrompt<FileInfo> GetScriptPrompt(FileInfo[] files, bool brief)
     {
         var prompt = new MultiSelectionPrompt<FileInfo>()
-        .Title("Select the scripts to execute:")
-        .NotRequired()
-        .PageSize(ScriptListSize)
-        .InstructionsText("[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]")
-        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(x => FileStyle(x, brief))
-        .HighlightStyle(SelectionHighlight)
-        .AddChoices(files);
+            .Title("Select the scripts to execute:")
+            .NotRequired()
+            .PageSize(ScriptListSize)
+            .InstructionsText(
+                "[grey](Press [blue]<space>[/] to toggle a script, [green]<enter>[/] to accept)[/]"
+            )
+            .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+            .UseConverter(x => FileStyle(x, brief))
+            .HighlightStyle(SelectionHighlight)
+            .AddChoices(files);
 
         return prompt;
     }
@@ -43,12 +48,12 @@ static class PromptConstructor
     public static SelectionPrompt<DirectoryInfo> GetDirectoryPrompt(DirectoryInfo[] directories)
     {
         var prompt = new SelectionPrompt<DirectoryInfo>()
-        .Title("Select a directory:")
-        .PageSize(ScriptListSize)
-        .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
-        .UseConverter(DirectoryStyle)
-        .HighlightStyle(SelectionHighlight)
-        .AddChoices(directories);
+            .Title("Select a directory:")
+            .PageSize(ScriptListSize)
+            .MoreChoicesText("[grey]Move up and down to reveal more options[/]")
+            .UseConverter(DirectoryStyle)
+            .HighlightStyle(SelectionHighlight)
+            .AddChoices(directories);
 
         return prompt;
     }
