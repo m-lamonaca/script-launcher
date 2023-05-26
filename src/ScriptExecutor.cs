@@ -1,70 +1,46 @@
-using System.ComponentModel;
 using System.Diagnostics;
-using Spectre.Console;
 
-static class ScriptExecutor
+namespace ScriptLauncher;
+
+internal static class ScriptExecutor
 {
-    public static async Task ExecAsync(List<FileInfo> files, bool elevated)
-    {
+    public static async Task ExecAsync(List<FileInfo> files, bool elevated) => 
         await Parallel.ForEachAsync(files, (x, ct) => ExecAsync(x, elevated, ct));
-    }
 
-    public static async ValueTask ExecAsync(FileInfo file, bool elevated, CancellationToken cancellationToken = default)
+    private static async ValueTask ExecAsync(FileInfo file, bool elevated, CancellationToken cancellationToken = default)
     {
         var process = GetExecutableProcessInfo(file, elevated);
-
-        if (process is null) return;
-
-        try
+        if (process is null)
         {
-            await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
+            return;
         }
-        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or PlatformNotSupportedException)
-        {
-            AnsiConsole.Markup($"[red]{ex.Message}[/]");
-        }
+        
+        await (Process.Start(process)?.WaitForExitAsync(cancellationToken) ?? Task.CompletedTask);
     }
 
-    private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated)
+    private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated) => file.Extension switch
     {
-        return file.Extension switch
+        ".bat" or ".cmd" => new ProcessStartInfo
         {
-            ".bat" or ".cmd" => new ProcessStartInfo
-            {
-                FileName = "cmd",
-                Arguments = $"/Q /C .\\{file.Name}",
-                Verb = elevated ? "runas /user:Administrator" : string.Empty,
-                WorkingDirectory = file.DirectoryName
-            },
-            ".ps1" => new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-ExecutionPolicy Bypass -File .\\{file.Name}",
-                Verb = elevated ? "runas /user:Administrator" : string.Empty,
-                WorkingDirectory = file.DirectoryName
-            },
-            ".sh" => new ProcessStartInfo
-            {
-                FileName = "bash",
-                Arguments = $"-c ./{file.Name}",
-                Verb = elevated ? "sudo" : string.Empty,
-                WorkingDirectory = file.DirectoryName
-            },
-            ".zsh" => new ProcessStartInfo
-            {
-                FileName = "zsh",
-                Arguments = $"-c ./{file.Name}",
-                Verb = elevated ? "sudo" : string.Empty,
-                WorkingDirectory = file.DirectoryName
-            },
-            ".fish" => new ProcessStartInfo
-            {
-                FileName = "fish",
-                Arguments = $"-c ./{file.Name}",
-                Verb = elevated ? "sudo" : string.Empty,
-                WorkingDirectory = file.DirectoryName
-            },
-            _ => null
-        };
-    }
+            FileName = "cmd",
+            Arguments = $"/Q /C .\\{file.Name}",
+            Verb = elevated ? "runas /user:Administrator" : string.Empty,
+            WorkingDirectory = file.DirectoryName
+        },
+        ".ps1" => new ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = $"-ExecutionPolicy Bypass -File .\\{file.Name}",
+            Verb = elevated ? "runas /user:Administrator" : string.Empty,
+            WorkingDirectory = file.DirectoryName
+        },
+        ".sh" or ".zsh" or ".fish" => new ProcessStartInfo
+        {
+            FileName = "sh",
+            Arguments = $"-c ./{file.Name}",
+            Verb = elevated ? "sudo" : string.Empty,
+            WorkingDirectory = file.DirectoryName
+        },
+        var _ => null
+    };
 }

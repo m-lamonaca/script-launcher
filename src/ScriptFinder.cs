@@ -1,6 +1,6 @@
-using Spectre.Console;
+namespace ScriptLauncher;
 
-readonly struct ScriptFinder
+internal readonly struct ScriptFinder
 {
     static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd" };
     public string[] Extensions { get; }
@@ -10,10 +10,12 @@ readonly struct ScriptFinder
 
     public ScriptFinder(string? extensions, string directory, int depth)
     {
-        Extensions = extensions?.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-        .ToHashSet()
-        .Select(x => $".{x.TrimStart('.')}")
-        .ToArray() ?? DefaultExtensions;
+        Extensions =
+            extensions
+                ?.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToHashSet()
+                .Select(x => $".{x.TrimStart('.')}")
+                .ToArray() ?? DefaultExtensions;
 
         Depth = depth;
         RootDirectory = directory;
@@ -44,9 +46,9 @@ readonly struct ScriptFinder
 
     public IDictionary<DirectoryInfo, FileInfo[]> GetScriptsByDirectory() =>
         Extensions
-        .Select(GetScriptFilesWithExtension)
-        .SelectMany(x => x)
-        .GroupBy(x => x.DirectoryName!)
-        .OrderBy(x => x.Key)
-        .ToDictionary(x => new DirectoryInfo(x.Key), x => x.ToArray());
+            .Select(GetScriptFilesWithExtension)
+            .SelectMany(x => x)
+            .GroupBy(x => x.DirectoryName!)
+            .OrderBy(x => x.Key)
+            .ToDictionary(x => new DirectoryInfo(x.Key), x => x.ToArray());
 }
