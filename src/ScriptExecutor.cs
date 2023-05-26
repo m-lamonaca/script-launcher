@@ -30,7 +30,7 @@ internal static class ScriptExecutor
         ".ps1" => new ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = $"-ExecutionPolicy Bypass -File .\\{file.Name}",
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -File .\\{file.Name}",
             Verb = elevated ? "runas /user:Administrator" : string.Empty,
             WorkingDirectory = file.DirectoryName
         },
