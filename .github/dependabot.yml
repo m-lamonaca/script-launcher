@@ -12,3 +12,7 @@ updates:
     commit-message:
       prefix: "NuGet"
       include: "scope"
+    ignore:
+      # ignore patch updates
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
