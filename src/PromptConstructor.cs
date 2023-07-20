@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Spectre.Console;
 
@@ -16,12 +17,18 @@ internal static class PromptConstructor
 
         if (!brief)
         {
-            builder.Append($"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/]");
+            builder.Append(
+                CultureInfo.InvariantCulture,
+                $"[blue]{info.DirectoryName}{Path.DirectorySeparatorChar}[/]"
+            );
         }
 
         builder
-            .Append($"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]")
-            .Append($"[greenyellow]{info.Extension}[/]");
+            .Append(
+                CultureInfo.InvariantCulture,
+                $"[orangered1]{Path.GetFileNameWithoutExtension(info.Name)}[/]"
+            )
+            .Append(CultureInfo.InvariantCulture, $"[greenyellow]{info.Extension}[/]");
 
         return builder.ToString();
     }
