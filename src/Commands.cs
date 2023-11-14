@@ -5,7 +5,7 @@ using Spectre.Console.Cli;
 
 namespace ScriptLauncher;
 
-internal sealed class RootCommand : AsyncCommand<RootCommandSettings>
+public sealed class RootCommand : AsyncCommand<RootCommandSettings>
 {
     private const int Failure = 1;
     private const int Success = 0;
@@ -15,6 +15,8 @@ internal sealed class RootCommand : AsyncCommand<RootCommandSettings>
         RootCommandSettings settings
     )
     {
+        ArgumentNullException.ThrowIfNull(settings);
+
         if (!Directory.Exists(settings.Directory))
         {
             AnsiConsole.Markup($"[red]The directory '{settings.Directory}' does not exist.[/]");
@@ -72,7 +74,7 @@ internal sealed class RootCommand : AsyncCommand<RootCommandSettings>
     }
 }
 
-internal class RootCommandSettings : CommandSettings
+public sealed class RootCommandSettings : CommandSettings
 {
     [Description("Comma separated list of script extensions")]
     [CommandOption("-x|--extensions")]

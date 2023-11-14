@@ -1,6 +1,7 @@
+using Spectre.Console;
+
 using System.Globalization;
 using System.Text;
-using Spectre.Console;
 
 namespace ScriptLauncher;
 
