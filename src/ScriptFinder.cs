@@ -2,17 +2,20 @@ namespace ScriptLauncher;
 
 internal readonly struct ScriptFinder
 {
-    static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd" };
+    private static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd" };
+    private static readonly char[] DefaultSeparators = new[] { ',', ' ' };
+
     public string[] Extensions { get; }
     public string RootDirectory { get; }
     public int Depth { get; }
+
     private readonly EnumerationOptions _options;
 
     public ScriptFinder(string? extensions, string directory, int depth)
     {
         Extensions =
             extensions
-                ?.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                ?.Split(DefaultSeparators, StringSplitOptions.RemoveEmptyEntries)
                 .ToHashSet()
                 .Select(x => $".{x.TrimStart('.')}")
                 .ToArray() ?? DefaultExtensions;

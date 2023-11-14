@@ -1,12 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFrameworks>net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AnalysisMode>All</AnalysisMode>
-    <Version>0.1.4</Version>
+    <Version>0.1.5</Version>
     <PackAsTool>true</PackAsTool>
     <Description>Tool to find and exec shell scripts</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
