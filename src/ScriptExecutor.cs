@@ -61,6 +61,13 @@ internal static class ScriptExecutor
                 Verb = verb,
                 WorkingDirectory = file.DirectoryName,
             },
+            ".nu" => new ProcessStartInfo
+            {
+                FileName = "nu",
+                Arguments = $"--no-config-file {file.Name}",
+                Verb = verb,
+                WorkingDirectory = file.DirectoryName,
+            },
             ".sh" or ".zsh" or ".fish" => new ProcessStartInfo
             {
                 FileName = "sh",
