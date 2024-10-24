@@ -2,7 +2,7 @@ namespace ScriptLauncher;
 
 internal readonly struct ScriptFinder
 {
-    private static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd" };
+    private static readonly string[] DefaultExtensions = new[] { ".ps1", ".*sh", ".bat", ".cmd", ".nu" };
     private static readonly char[] DefaultSeparators = new[] { ',', ' ' };
 
     public string[] Extensions { get; }
