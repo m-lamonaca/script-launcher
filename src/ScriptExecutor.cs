@@ -50,32 +50,31 @@ internal static class ScriptExecutor
             ".bat" or ".cmd" => new ProcessStartInfo
             {
                 FileName = "cmd",
-                Arguments = $"/Q /C {file.Name}",
+                Arguments = $"/Q /C ./{file.Name}",
                 Verb = verb,
                 WorkingDirectory = file.DirectoryName,
             },
             ".ps1" => new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File {file.Name}",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File ./{file.Name}",
                 Verb = verb,
                 WorkingDirectory = file.DirectoryName,
             },
             ".nu" => new ProcessStartInfo
             {
                 FileName = "nu",
-                Arguments = $"--no-config-file {file.Name}",
+                Arguments = $"--no-config-file ./{file.Name}",
                 Verb = verb,
                 WorkingDirectory = file.DirectoryName,
             },
-            ".sh" or ".zsh" or ".fish" => new ProcessStartInfo
+            _ => new ProcessStartInfo
             {
                 FileName = "sh",
-                Arguments = $"-c {file.Name}",
+                Arguments = $"-c ./{file.Name}",
                 Verb = verb,
                 WorkingDirectory = file.DirectoryName,
             },
-            _ => null,
         };
     }
 }
