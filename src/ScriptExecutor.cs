@@ -26,36 +26,49 @@ internal static class ScriptExecutor
         ).ConfigureAwait(ConfigureAwaitOptions.None);
     }
 
-    private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated) =>
-        file.Extension switch
+    private static string GetElevationVerb(bool elevated)
+    {
+        if (!elevated)
         {
-            ".bat"
-            or ".cmd"
-                => new ProcessStartInfo
-                {
-                    FileName = "cmd",
-                    Arguments = $"/Q /C .\\{file.Name}",
-                    Verb = elevated ? "runas /user:Administrator" : string.Empty,
-                    WorkingDirectory = file.DirectoryName
-                },
-            ".ps1"
-                => new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -File .\\{file.Name}",
-                    Verb = elevated ? "runas /user:Administrator" : string.Empty,
-                    WorkingDirectory = file.DirectoryName
-                },
-            ".sh"
-            or ".zsh"
-            or ".fish"
-                => new ProcessStartInfo
-                {
-                    FileName = "sh",
-                    Arguments = $"-c ./{file.Name}",
-                    Verb = elevated ? "sudo" : string.Empty,
-                    WorkingDirectory = file.DirectoryName
-                },
-            _ => null
+            return string.Empty;
+        }
+
+        var platform = Environment.OSVersion.Platform;
+        return platform switch
+        {
+            PlatformID.Win32NT => "runas /user:Administrator",
+            PlatformID.Unix or PlatformID.MacOSX => "sudo",
+            _ => string.Empty,
         };
+    }
+
+    private static ProcessStartInfo? GetExecutableProcessInfo(FileInfo file, bool elevated)
+    {
+        var verb = GetElevationVerb(elevated);
+        return file.Extension switch
+        {
+            ".bat" or ".cmd" => new ProcessStartInfo
+            {
+                FileName = "cmd",
+                Arguments = $"/Q /C {file.Name}",
+                Verb = verb,
+                WorkingDirectory = file.DirectoryName,
+            },
+            ".ps1" => new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File {file.Name}",
+                Verb = verb,
+                WorkingDirectory = file.DirectoryName,
+            },
+            ".sh" or ".zsh" or ".fish" => new ProcessStartInfo
+            {
+                FileName = "sh",
+                Arguments = $"-c {file.Name}",
+                Verb = verb,
+                WorkingDirectory = file.DirectoryName,
+            },
+            _ => null,
+        };
+    }
 }
