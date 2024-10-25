@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AnalysisMode>All</AnalysisMode>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <PackAsTool>true</PackAsTool>
     <Description>Tool to find and exec shell scripts</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
