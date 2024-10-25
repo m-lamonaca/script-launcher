@@ -1,5 +1,5 @@
 using System.ComponentModel;
-
+using System.Diagnostics.CodeAnalysis;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -76,27 +76,30 @@ public sealed class RootCommand : AsyncCommand<RootCommandSettings>
 
 public sealed class RootCommandSettings : CommandSettings
 {
-    [Description("Comma separated list of script extensions")]
-    [CommandOption("-x|--extensions")]
-    public string? Extensions { get; init; }
+    [Description("List of script extensions to search for")]
+    [CommandOption("-x|--extensions <EXTENSIONS>")]
+    [SuppressMessage("Performance", "CA1819:Properties should not return arrays")]
+    public string[] Extensions { get; init; } = [".ps1", ".*sh", ".bat", ".cmd", ".nu"];
 
     [Description("Search depth")]
     [CommandOption("-d|--depth")]
-    public int Depth { get; init; } = 1;
+    [DefaultValue(3)]
+    public int Depth { get; init; }
 
     [Description("Run with elevated privileges")]
     [CommandOption("-e|--elevated")]
-    public bool Elevated { get; init; } = false;
+    public bool Elevated { get; init; }
 
     [Description("Group scripts by folder")]
     [CommandOption("-g|--group")]
-    public bool Group { get; init; } = false;
+    public bool Group { get; init; }
 
     [Description("Show brief information")]
     [CommandOption("-b|--brief")]
-    public bool Brief { get; init; } = false;
+    public bool Brief { get; init; }
 
     [Description("Starting directory (Default: .)")]
-    [CommandArgument(0, "<path>")]
-    public string Directory { get; init; } = ".";
+    [CommandArgument(0, "[path]")]
+    [DefaultValue(".")]
+    public string Directory { get; init; } = string.Empty;
 }

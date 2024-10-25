@@ -33,18 +33,19 @@ _**NOTE**_: The option `-p:PublishTrimmed=true` may produce some *warnings*. If 
 
 ```sh
 USAGE:
-    scrl <path> [OPTIONS]
+    scrl [path] [OPTIONS]
 
 ARGUMENTS:
-    <path>    Starting directory (Default: .)
+    [path]    Starting directory (Default: .)
 
 OPTIONS:
-    -h, --help          Prints help information
-    -x, --extensions    Comma separated list of script extensions
-    -d, --depth         Search depth
-    -e, --elevated      Run with elevated privileges
-    -g, --group         Group scripts by folder
-    -b, --brief         Show brief information
+                                     DEFAULT
+    -h, --help                                  Prints help information
+    -x, --extensions <EXTENSIONS>               List of script extensions to search for
+    -d, --depth                      3          Search depth
+    -e, --elevated                              Run with elevated privileges
+    -g, --group                                 Group scripts by folder
+    -b, --brief                                 Show brief information
 ```
 
 [CLI]: https://docs.microsoft.com/en-us/dotnet/core/tools/ ".NET CLI Docs"
