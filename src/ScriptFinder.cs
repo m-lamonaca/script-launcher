@@ -10,7 +10,7 @@ internal readonly struct ScriptFinder
 
     public ScriptFinder(IEnumerable<string> extensions, string directory, int depth)
     {
-        Extensions = extensions.ToHashSet().Select(x => $".{x.TrimStart('.')}");
+        Extensions = extensions.ToHashSet().Select(static x => $".{x.TrimStart('.')}");
 
         Depth = depth;
         RootDirectory = directory;
@@ -28,7 +28,7 @@ internal readonly struct ScriptFinder
         try
         {
             var filenames = Directory.GetFiles(RootDirectory, $"*{extension}", _options);
-            return filenames.Select(x => new FileInfo(x));
+            return filenames.Select(static x => new FileInfo(x));
         }
         catch (UnauthorizedAccessException)
         {
@@ -37,13 +37,13 @@ internal readonly struct ScriptFinder
     }
 
     public FileInfo[] GetScripts() =>
-        Extensions.Select(GetScriptFilesWithExtension).SelectMany(x => x).ToArray();
+        Extensions.Select(GetScriptFilesWithExtension).SelectMany(static x => x).ToArray();
 
     public IDictionary<DirectoryInfo, FileInfo[]> GetScriptsByDirectory() =>
         Extensions
             .Select(GetScriptFilesWithExtension)
-            .SelectMany(x => x)
-            .GroupBy(x => x.DirectoryName!)
-            .OrderBy(x => x.Key)
-            .ToDictionary(x => new DirectoryInfo(x.Key), x => x.ToArray());
+            .SelectMany(static x => x)
+            .GroupBy(static x => x.DirectoryName!)
+            .OrderBy(static x => x.Key)
+            .ToDictionary(static x => new DirectoryInfo(x.Key), static x => x.ToArray());
 }
